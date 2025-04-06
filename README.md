@@ -6,4 +6,4 @@
 
 ## Changes
 
-[CHANGELOG.md](.table-api/CHANGELOG.md)
+[CHANGELOG.md](table-api/CHANGELOG.md)
