@@ -4,32 +4,52 @@ import { getPaginationRowModel } from '@tanstack/vue-table'
 import type { TableColumn } from '@nuxt/ui'
 import type { Column } from '@tanstack/vue-table'
 
-definePageMeta({
-  title: 'Products List'
+useHead({
+  title: 'Список продуктів'
 })
 
 const UBadge = resolveComponent('UBadge')
 const UButton = resolveComponent('UButton')
 const UDropdownMenu = resolveComponent('UDropdownMenu')
+const UAvatar = resolveComponent('UAvatar')
 
 const table = useTemplateRef('table')
 
-const items = ref([
-  { id: 1, name: 'Product A', category: 'Electronics', price: 100, stock: 50 },
-  { id: 2, name: 'Product B', category: 'Clothing', price: 50, stock: 100 },
-  { id: 3, name: 'Product C', category: 'Electronics', price: 200, stock: 20 },
-  { id: 4, name: 'Product D', category: 'Home', price: 80, stock: 30 },
-  { id: 5, name: 'Product E', category: 'Clothing', price: 70, stock: 80 },
-  { id: 6, name: 'Product F', category: 'Electronics', price: 150, stock: 25 },
-  { id: 7, name: 'Product G', category: 'Home', price: 120, stock: 15 },
-  { id: 8, name: 'Product H', category: 'Clothing', price: 45, stock: 60 },
-  { id: 9, name: 'Product I', category: 'Electronics', price: 250, stock: 10 },
-  { id: 10, name: 'Product J', category: 'Home', price: 90, stock: 40 },
-  { id: 11, name: 'Product K', category: 'Electronics', price: 180, stock: 35 },
-  { id: 12, name: 'Product L', category: 'Home', price: 110, stock: 55 },
-]);
+interface Product {
+  id: number
+  title: string
+  description: string
+  price: number
+  rating: number
+  brand: string
+  category: string
+  thumbnail: string
+}
 
-// Function to generate column headers with sorting dropdowns
+interface ProductsResponse {
+  products: Product[]
+  total: number
+  skip: number
+  limit: number
+}
+
+const { data: productsData, status } = await useFetch<ProductsResponse>('https://dummyjson.com/products?limit=0', {
+  key: 'products-table',
+  lazy: true
+})
+
+
+const products = computed(() => productsData.value?.products || [])
+
+function getHeaderWithoutSorting(label: string) {
+  return h(UButton, {
+    color: 'neutral',
+    variant: 'ghost',
+    label,
+    class: '-mx-2.5',
+  })
+}
+
 function getHeader(column: Column<any>, label: string) {
   const isSorted = column.getIsSorted()
 
@@ -85,38 +105,66 @@ function getHeader(column: Column<any>, label: string) {
   )
 }
 
-// Updated columns with enhanced sorting UI
-const columns: TableColumn<any>[] = [
+const columns: TableColumn<Product>[] = [
   {
-    accessorKey: 'name',
-    header: ({ column }) => getHeader(column, 'Product Name'),
+    accessorKey: 'title',
+    header: ({ column }) => getHeader(column, 'Назва'),
   },
   {
-    accessorKey: 'category',
-    header: ({ column }) => getHeader(column, 'Category'),
+    accessorKey: 'description',
+    header: ({ column }) => getHeader(column, 'Опис'),
+    cell: ({ row }) => {
+      const description = row.getValue('description') as string
+      return description.length > 50 ? `${description.substring(0, 50)}...` : description
+    }
   },
   {
     accessorKey: 'price',
-    header: ({ column }) => getHeader(column, 'Price ($)'),
+    header: ({ column }) => getHeader(column, 'Ціна'),
     cell: ({ row }) => {
       const price = Number.parseFloat(row.getValue('price'))
       return h('div', { class: 'text-right font-medium' }, `$${price}`)
     }
   },
   {
-    accessorKey: 'stock',
-    header: ({ column }) => getHeader(column, 'Stock'),
+    accessorKey: 'rating',
+    header: ({ column }) => getHeader(column, 'Оцінка'),
+    cell: ({ row }) => {
+      const rating = Number.parseFloat(row.getValue('rating'))
+      const color = rating >= 4.5 ? 'text-green-500' : 'text-red-500'
+      return h('div', { class: `font-medium ${color}` }, rating.toFixed(1))
+    }
   },
-];
+  {
+    accessorKey: 'brand',
+    header: ({ column }) => getHeader(column, 'Бренд'),
+  },
+  {
+    accessorKey: 'category',
+    header: ({ column }) => getHeader(column, 'Категорія'),
+  },
+  {
+    accessorKey: 'thumbnail',
+    header: () => getHeaderWithoutSorting('Фото'),
+    cell: ({ row }) => {
+      const thumbnail = row.getValue('thumbnail') as string
+      return h(UAvatar, {
+        src: thumbnail,
+        alt: `${row.getValue('title')} thumbnail`,
+        class: 'rounded-md object-cover w-[100px] h-[100px]'
+      })
+    }
+  },
+]
 
 const pagination = ref({
   pageIndex: 0,
-  pageSize: 5
+  pageSize: 10
 })
 
 const sorting = ref([
   {
-    id: 'name',
+    id: 'title',
     desc: false
   }
 ])
@@ -124,41 +172,41 @@ const sorting = ref([
 
 <template>
   <div class="min-h-screen bg-[#2e2e2e] p-8">
-    <div class="max-w-6xl mx-auto">
-      <h1 class="text-3xl font-bold mb-6 text-white">Products List</h1>
-      <div class="flex flex-col border-(--ui-border-accented)">
-        <div class="flex flex-col px-2 py-3 flex-1 w-full">
-        <UInput
-            :model-value="table?.tableApi?.getColumn('name')?.getFilterValue() as string"
-            class="max-w-sm"
-            placeholder="Find by name"
-            @update:model-value="table?.tableApi?.getColumn('name')?.setFilterValue($event)"
-        />
-        </div>
-        <UTable
-            ref="table"
-            v-model:pagination="pagination"
-            v-model:sorting="sorting"
-            :columns="columns"
-            :data="items"
-            searchable
-            search-placeholder="Search products..."
-            :pagination-options="{
-                getPaginationRowModel: getPaginationRowModel()
-            }"
-            sort-mode="all"
-            class="bg-gray-700 rounded-lg"
-        />
+    <div class=" mx-auto">
+      <div class="bg-gray-700 rounded-lg">
+          <div class="mb-4 py-3 flex justify-end">
+            <UInput
+                :model-value="table?.tableApi?.getColumn('title')?.getFilterValue() as string"
+                class=" px-5 py-2  min-w-80   me-4"
+                placeholder="Пошук за назвою"
+                @update:model-value="table?.tableApi?.getColumn('title')?.setFilterValue($event)"
+            />
+          </div>
+
+          <UTable
+              ref="table"
+              v-model:pagination="pagination"
+              v-model:sorting="sorting"
+              :columns="columns"
+              :data="products"
+              :loading="status === 'pending'"
+              search-placeholder="Пошук товарів..."
+              :pagination-options="{
+            getPaginationRowModel: getPaginationRowModel()
+          }"
+              sort-mode="all"
+          />
       </div>
 
-    </div>
-    <div class="flex justify-center border-t border-(--ui-border) pt-4">
-      <UPagination
-          :default-page="(table?.tableApi?.getState().pagination.pageIndex || 0) + 1"
-          :items-per-page="table?.tableApi?.getState().pagination.pageSize"
-          :total="table?.tableApi?.getFilteredRowModel().rows.length"
-          @update:page="(p) => table?.tableApi?.setPageIndex(p - 1)"
-      />
+
+      <div class="flex justify-center border-t border-(--ui-border) pt-4 mt-4">
+        <UPagination
+            :default-page="(table?.tableApi?.getState().pagination.pageIndex || 0) + 1"
+            :items-per-page="table?.tableApi?.getState().pagination.pageSize"
+            :total="products.length"
+            @update:page="(p) => table?.tableApi?.setPageIndex(p - 1)"
+        />
+      </div>
     </div>
   </div>
 </template>
