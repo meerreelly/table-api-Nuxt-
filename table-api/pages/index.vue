@@ -176,10 +176,9 @@ const sorting = ref([
       <div class="bg-gray-700 rounded-lg">
           <div class="mb-4 py-3 flex justify-end">
             <UInput
-                :model-value="table?.tableApi?.getColumn('title')?.getFilterValue() as string"
+                v-model="globalFilter"
                 class=" px-5 py-2  min-w-80   me-4"
-                placeholder="Пошук за назвою"
-                @update:model-value="table?.tableApi?.getColumn('title')?.setFilterValue($event)"
+                placeholder="Пошук"
             />
           </div>
 
