@@ -1,4 +1,4 @@
-﻿<script setup lang="ts">
+<script setup lang="ts">
 import { h, resolveComponent } from 'vue'
 import { getPaginationRowModel } from '@tanstack/vue-table'
 import type { TableColumn } from '@nuxt/ui'
@@ -168,6 +168,9 @@ const sorting = ref([
     desc: false
   }
 ])
+
+const globalFilter = ref('45')
+
 </script>
 
 <template>
@@ -185,7 +188,7 @@ const sorting = ref([
           <UTable
               ref="table"
               v-model:pagination="pagination"
-              v-model:sorting="sorting"
+              model:global-filter="globalFilter"
               :columns="columns"
               :data="products"
               :loading="status === 'pending'"
