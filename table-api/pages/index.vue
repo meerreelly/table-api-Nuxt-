@@ -54,7 +54,6 @@ function getHeaderWithoutSorting(label: string) {
 
 function getHeader(column: Column<any>, label: string) {
   const isSorted = column.getIsSorted();
-
   return h(
     UDropdownMenu,
     {
@@ -118,11 +117,16 @@ const columns: TableColumn<Product>[] = [
     accessorKey: "description",
     header: ({ column }) => getHeader(column, "Опис"),
     cell: ({ row }) => {
-      const description = row.getValue("description") as string;
-      return description.length > 50
-        ? `${description.substring(0, 50)}...`
-        : description;
-    },
+    const description = row.getValue("description") as string;
+    return h(
+      "div",
+      {
+        class:
+          "text-sm text-gray-500 w-full max-w-xs min-h-[4rem] whitespace-normal break-words p-2",
+      },
+      description
+    );
+  }
   },
   {
     accessorKey: "price",
@@ -138,7 +142,7 @@ const columns: TableColumn<Product>[] = [
     cell: ({ row }) => {
       const rating = Number.parseFloat(row.getValue("rating"));
       const color = rating >= 4.5 ? "text-green-500" : "text-red-500";
-      return h("div", { class: `font-medium ${color}` }, rating.toFixed(1));
+      return h("div", { class: `font-medium ${color}` }, rating);
     },
   },
   {
@@ -194,23 +198,20 @@ const globalFilter = ref("");
           ref="table"
           v-model:pagination="pagination"
           v-model:global-filter="globalFilter"
+          v-model:sorting="sorting"
           :columns="columns"
           :data="products"
           :loading="status === 'pending'"
-          search-placeholder="Пошук товарів..."
           :pagination-options="{
             getPaginationRowModel: getPaginationRowModel(),
           }"
-          sort-mode="all"
-          class="bg-gray-700 rounded-lg"
+          class="bg-gray-700 flex justify-center rounded-lg h-[100vh]"
         />
       </div>
 
-      <div class="flex justify-center border-t border-(--ui-border) pt-4 mt-4">
+      <div class="flex justify-center pt-4 mt-4">
         <UPagination
-          :default-page="
-            (table?.tableApi?.getState().pagination.pageIndex || 0) + 1
-          "
+          :default-page="(table?.tableApi?.getState().pagination.pageIndex || 0) + 1"
           :items-per-page="table?.tableApi?.getState().pagination.pageSize"
           :total="table?.tableApi?.getFilteredRowModel().rows.length"
           @update:page="(p) => table?.tableApi?.setPageIndex(p - 1)"
